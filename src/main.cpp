@@ -1,3 +1,5 @@
+// https://lastminuteengineers.com/oled-display-esp8266-tutorial/
+// https://lastminuteengineers.com/esp8266-ntp-server-date-time-tutorial/
 #include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 #include <NTPClient.h> // https://github.com/arduino-libraries/NTPClient
 #include <WiFiUdp.h>
