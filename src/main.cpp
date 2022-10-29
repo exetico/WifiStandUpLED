@@ -17,8 +17,11 @@ char cstr [16];//To convert int to char
 int oledCount  = 0;
 
 //Objects
-// VIRKER: U8X8_SH1106_128X64_NONAME_HW_I2C u8g2(U8X8_PIN_NONE);
+// VIRKER 128x64: U8X8_SH1106_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
 U8X8_SH1106_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
+// FORSØG MED 128x32.... VIRKER IKKE: U8X8_SSD1306_128X32_UNIVISION_2ND_HW_I2C u8x8(U8X8_PIN_NONE);
+// FORSØG MED 128x32.... VIRKER IKKE: U8X8_SSD1306_128X32_WINSTAR_2ND_HW_I2C u8x8(U8X8_PIN_NONE);
+
 // https://github.com/olikraus/u8g2/wiki/u8g2setupcpp
 // https://github.com/olikraus/u8g2/wiki/u8x8reference
 // SEE https://github.com/olikraus/u8g2/issues/149
