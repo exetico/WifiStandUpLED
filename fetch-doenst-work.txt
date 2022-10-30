@@ -5,16 +5,20 @@
 // https://www.aranacorp.com/en/using-an-oled-display-with-arduino/
 // https://github.com/olikraus/U8glib_Arduino/blob/master/examples/HelloWorld/HelloWorld.ino
 // https://efcomputer.net.au/blog/checkout/order-received/24145/?key=wc_order_qhEn46C4K2HWF + https://efcomputer.net.au/blog/product/esp8266-led-strip-wifi-source-code/ + https://www.instructables.com/WiFi-Controlled-RGB-LED-Strip-With-ESP8266/
-// https://github.com/tzapu/WiFiManager/issues/1426
+
 #include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 #include <NTPClient.h>   // https://github.com/arduino-libraries/NTPClient
 #include <WiFiUdp.h>
+#include <Fetch.h> // https://github.com/instanceofMA/arduino-fetch
+/* Fetch didnt work without adding the following to the arduino-fetch debug + Fetch.cpp file:
+  #ifndef DEBUGV
+  #define DEBUGV(...) do { (void)0; } while (0)
+  #endif
 
-// VARS
-bool wifi_connected = false;
-bool fetching_stations = false;
-int num_stations = 0;
-String errorMessage = "";
+  LCBUrl Inside arduino-fetch > srv > utils > Url > LCBUrl
+  also needs an update..
+  Downloaded here: https://github.com/lbussy/LCBUrl/releases/tag/1.1.8
+*/
 
 // OLED SCREEN
 #include <U8g2lib.h>
@@ -41,136 +45,17 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 
-// WHITE Strips
+// RGB Strip
 #include "Color.h"
 const int redLED = 14;   // D3 GPIO0
 const int greenLED = 12; // D2 GPIO2
 const int blueLED = 13;  // D4 GPIO4
 Color createColor(redLED, greenLED, blueLED);
 
-// Download files
-#include <WiFiClient.h>
-WiFiClientSecure client;
-#include <ESP8266HTTPClient.h>
-/* Import: See https://randomnerdtutorials.com/esp32-http-get-post-arduino/#comment-722499*/
-#include <ArduinoJson.h>
+// HTTPS GET
 #define CONFIG_URL "https://tobiasnordahl.dk/playground/stand-up-led.json"
-
-void log_i(const String &txt, int num_stations)
-{
-  Serial.print(txt);
-}
-
-bool fetch_json(void)
-{
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    errorMessage = "";
-    String response = "";
-
-    String apiGetData = CONFIG_URL;
-
-    Serial.print("connecting to ");
-    Serial.println(apiGetData);
-    if (!client.connect(apiGetData, 443))
-    {
-      Serial.println("connection failed");
-      return 0;
-    }
-
-    client.print(String("GET ") + CONFIG_URL + " HTTP/1.1\r\n" +
-                 "Host: " + CONFIG_URL + "\r\n" +
-                 "User-Agent: BuildFailureDetectorESP8  266\r\n" +
-                 "Connection: close\r\n\r\n");
-
-    while (client.connected())
-    {
-      String line = client.readStringUntil('\n');
-      if (line == "\r")
-      {
-        Serial.println("headers received");
-        break;
-      }
-    }
-
-    String line = client.readStringUntil('\n');
-    if (line.startsWith("{\"config\":"))
-    {
-      Serial.println("esp8266/Arduino CI successfull!");
-    }
-    else
-    {
-      Serial.println("esp8266/Arduino CI has failed");
-    }
-
-    // Serial.println("Request: " + apiGetData);
-    // HTTPClient http;                    // Object of class HTTPClient
-    // http.begin(client, apiGetData); // get the result (**the error code**)
-    // int httpCode = http.GET();
-    // // Check the returning code
-    // if (httpCode > 0)
-    // {
-    //   response = http.getString();
-    //   http.end(); // Close connection
-    //   if (httpCode != 200)
-    //   {
-    //     // Bad Response Code
-    //     errorMessage = "Error response (" + String(httpCode) + "): " + response;
-    //     Serial.println(errorMessage);
-    //     return 0;
-    //   }
-    //   else
-    //   {
-    //     Serial.println(response);
-    //     return 1;
-    //   }
-    // }
-    return 1;
-    // http.begin(wifiClient, CONFIG_URL);
-    // int httpResponceCode = http.GET();
-    // if (httpResponceCode > 0)
-    // {
-    //   // Serial.println(httpResponceCode);
-    //   // StaticJsonDocument<1024> doc;
-    //   // DeserializationError error = deserializeJson(doc, http.getStream());
-    //   // if (error)
-    //   // {
-    //   //   Serial.print("deserializeJson() failed: ");
-    //   //   Serial.println(error.c_str());
-    //   //   http.end();
-    //   //   return 1;
-    //   // }
-    //   // https://github.com/tzapu/WiFiManager/issues/1426
-    //   // num_stations = stations;
-    //   log_i("found %d stations", num_stations);
-    //   return 0;
-    // }
-    // else
-    // {
-    //   Serial.print("err:");
-    //   Serial.println(httpResponceCode);
-    //   http.end();
-    //   return 1;
-    // }
-    // http.end();
-    // return 0;
-  }
-  else
-  {
-    Serial.println("wifi err");
-    return 1;
-  }
-}
-
-void get_json(void)
-{
-  fetching_stations = true;
-  while (fetching_stations)
-  {
-    fetching_stations = fetch_json();
-  }
-}
-
+// Certificate will expire and might need to be updated before running this sketch.
+#define FINGERPRINT "29 70 30 74 CA 3C 48 F5 4A 79 C6 2D 11 57 A2 41 2A 2D 7D 5C"
 // SETUP
 void setup()
 {
@@ -210,10 +95,21 @@ void setup()
     Serial.println("Calling timeClient");
     timeClient.begin();
 
-    // Download file
-    Serial.println("Download begin");
-    get_json();
-    Serial.println("Download end");
+    Serial.println("Trying to download file...");
+    // Download settings
+    RequestOptions options;
+    options.method = "GET";
+    options.fingerprint = FINGERPRINT;
+
+    Response response = fetch(CONFIG_URL, options);
+
+    // Printing response body as plain text.
+    Serial.println();
+    Serial.println(response.text());
+
+    Serial.println("File downloaded");
+
+    delay(2000);
 
     // Screen
     // initialize with the I2C addr 0x3C

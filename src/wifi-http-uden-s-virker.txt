@@ -50,7 +50,7 @@ Color createColor(redLED, greenLED, blueLED);
 
 // Download files
 #include <WiFiClient.h>
-WiFiClientSecure client;
+WiFiClient wifiClient;
 #include <ESP8266HTTPClient.h>
 /* Import: See https://randomnerdtutorials.com/esp32-http-get-post-arduino/#comment-722499*/
 #include <ArduinoJson.h>
@@ -69,62 +69,28 @@ bool fetch_json(void)
     String response = "";
 
     String apiGetData = CONFIG_URL;
-
-    Serial.print("connecting to ");
-    Serial.println(apiGetData);
-    if (!client.connect(apiGetData, 443))
+    Serial.println("Request: " + apiGetData);
+    HTTPClient http;                    // Object of class HTTPClient
+    http.begin(wifiClient, apiGetData); // get the result (**the error code**)
+    int httpCode = http.GET();
+    // Check the returning code
+    if (httpCode > 0)
     {
-      Serial.println("connection failed");
-      return 0;
-    }
-
-    client.print(String("GET ") + CONFIG_URL + " HTTP/1.1\r\n" +
-                 "Host: " + CONFIG_URL + "\r\n" +
-                 "User-Agent: BuildFailureDetectorESP8  266\r\n" +
-                 "Connection: close\r\n\r\n");
-
-    while (client.connected())
-    {
-      String line = client.readStringUntil('\n');
-      if (line == "\r")
+      response = http.getString();
+      http.end(); // Close connection
+      if (httpCode != 200)
       {
-        Serial.println("headers received");
-        break;
+        // Bad Response Code
+        errorMessage = "Error response (" + String(httpCode) + "): " + response;
+        Serial.println(errorMessage);
+        return 0;
+      }
+      else
+      {
+        Serial.println(response);
+        return 1;
       }
     }
-
-    String line = client.readStringUntil('\n');
-    if (line.startsWith("{\"config\":"))
-    {
-      Serial.println("esp8266/Arduino CI successfull!");
-    }
-    else
-    {
-      Serial.println("esp8266/Arduino CI has failed");
-    }
-
-    // Serial.println("Request: " + apiGetData);
-    // HTTPClient http;                    // Object of class HTTPClient
-    // http.begin(client, apiGetData); // get the result (**the error code**)
-    // int httpCode = http.GET();
-    // // Check the returning code
-    // if (httpCode > 0)
-    // {
-    //   response = http.getString();
-    //   http.end(); // Close connection
-    //   if (httpCode != 200)
-    //   {
-    //     // Bad Response Code
-    //     errorMessage = "Error response (" + String(httpCode) + "): " + response;
-    //     Serial.println(errorMessage);
-    //     return 0;
-    //   }
-    //   else
-    //   {
-    //     Serial.println(response);
-    //     return 1;
-    //   }
-    // }
     return 1;
     // http.begin(wifiClient, CONFIG_URL);
     // int httpResponceCode = http.GET();
