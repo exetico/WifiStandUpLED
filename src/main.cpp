@@ -222,7 +222,10 @@ void setup()
     get_json_config();
 
     if (__CONFIG_ENABLED_FROM && __CONFIG_ENABLED_TO && __CONFIG_STAND_UP_PERIOD_MIN)
-      Serial.println("Download end");
+    {
+      Serial.println("Download OK");
+    }
+    Serial.println("Download end");
 
     // Screen
     // initialize with the I2C addr 0x3C
@@ -272,7 +275,12 @@ void loop()
   String formattedTime = timeClient.getFormattedTime();
   // const char * c = formattedTime.c_str();
 
-  u8x8.drawString(0, 0, formattedTime.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done with c_str()
+  u8x8.setCursor(0, 0);
+  u8x8.drawString(0, 0, formattedTime.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+  u8x8.setCursor(1, 0);
+  String configString = " F: " + String(__CONFIG_ENABLED_FROM) + ", T: " + String(__CONFIG_ENABLED_TO) + ", MIN:" + String(__CONFIG_STAND_UP_PERIOD_MIN);
+  u8x8.drawString(0, 0, configString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+
   delay(1000);
 
   Serial.print(daysOfTheWeek[timeClient.getDay()]);
