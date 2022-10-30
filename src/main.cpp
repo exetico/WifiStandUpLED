@@ -277,9 +277,9 @@ void loop()
 
   u8x8.setCursor(0, 0);
   u8x8.drawString(0, 0, formattedTime.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
-  u8x8.setCursor(1, 0);
-  String configString = " F: " + String(__CONFIG_ENABLED_FROM) + ", T: " + String(__CONFIG_ENABLED_TO) + ", MIN:" + String(__CONFIG_STAND_UP_PERIOD_MIN);
-  u8x8.drawString(0, 0, configString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+  u8x8.setCursor(0, 1);
+  String configString = "F:" + String(__CONFIG_ENABLED_FROM) + ",T:" + String(__CONFIG_ENABLED_TO) + ",M:" + String(__CONFIG_STAND_UP_PERIOD_MIN);
+  u8x8.drawString(0, 1, configString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
 
   delay(1000);
 
