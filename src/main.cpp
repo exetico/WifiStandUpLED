@@ -57,6 +57,9 @@ int __CONFIG_STAND_UP_PERIOD_MIN = 0;
 ezButton button(2); // create ezButton object; // // GPIO2 = D4
 unsigned long lastCount = 0;
 unsigned long count = 0;
+unsigned long buttonIsPressed = 0;
+
+unsigned long lastButtonPressTargetMs = 4000;
 unsigned long lastButtonPressMillis = millis();
 unsigned long lastButtonPressWasLongPress = 0;
 
@@ -248,6 +251,9 @@ void screenPrintText(String text, unsigned long position, unsigned long line, un
 // SETUP
 void setup()
 {
+  // Txt
+  screenPrintText("Starter op...", 0, 0, 1);
+
   // Buttons
   button.setDebounceTime(50); // set debounce time to 50 milliseconds
   button.setCountMode(COUNT_FALLING);
@@ -278,6 +284,7 @@ void setup()
   if (!res)
   {
     Serial.println("Failed to connect");
+    screenPrintText("Wifi-fejl...", 0, 0, 1);
     // ESP.restart();
   }
 
@@ -376,12 +383,14 @@ void loop()
   if (button.isPressed())
   {
     Serial.println("The button is pressed");
+    buttonIsPressed = 1;
     createColor.whiteBoth();
   }
 
   if (button.isReleased())
   {
     Serial.println("The button is released");
+    buttonIsPressed = 0;
     createColor.off();
   }
 
@@ -429,14 +438,15 @@ void loop()
   {
     // Check if button press has been too long time ago
     unsigned long currentButtonmillis = millis();
-    if (button.getCount() > 0 && currentButtonmillis - lastButtonPressMillis >= 3000)
+    if (button.getCount() > 0 && currentButtonmillis - lastButtonPressMillis >= lastButtonPressTargetMs)
     {
       // Reset count
       button.resetCount();
       Serial.print("ResetButtonCount");
 
       // Set state of longpress button
-      lastButtonPressWasLongPress = 1;
+      if (buttonIsPressed)
+        lastButtonPressWasLongPress = 1;
     }
   }
   // Every 1000

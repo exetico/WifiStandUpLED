@@ -26,8 +26,8 @@ void Color::whiteGreen()
 
 void Color::whiteBoth()
 {
-  analogWrite(_redPIN, 255);
-  analogWrite(_greenPIN, 255);
+  analogWrite(_redPIN, 0);
+  analogWrite(_greenPIN, 0);
 }
 
 void Color::off()
