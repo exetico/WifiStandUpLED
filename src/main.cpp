@@ -213,7 +213,7 @@ void updateScreenAndTime()
   u8x8.drawString(0, 2, countString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
 
   u8x8.setCursor(0, 3);
-  String buttonString = "Knap:" + String(button.isPressed() ? "Aktiv" : "Ej i brug") + "  ";
+  String buttonString = "Knap:" + String(buttonIsPressed ? "Aktiv" : "Ej i brug") + "  ";
   u8x8.drawString(0, 3, buttonString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
 
   // Print date and time to serial
@@ -398,6 +398,7 @@ void loop()
   {
     // Not long press tigger anymore, and fade light to confirm userinput
     lastButtonPressWasLongPress = !lastButtonPressWasLongPress;
+    createColor.off();
     createColor.blink();
     createColor.off();
   }
