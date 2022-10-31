@@ -58,6 +58,7 @@ ezButton button(2); // create ezButton object; // // GPIO2 = D4
 unsigned long lastCount = 0;
 unsigned long count = 0;
 unsigned long lastButtonPressMillis = millis();
+unsigned long lastButtonPressWasLongPress = 0;
 
 // OLED SCREEN
 #include <U8g2lib.h>
@@ -81,8 +82,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 #include "Color.h"
 const int redLED = 14;   // D3 GPIO0
 const int greenLED = 12; // D2 GPIO2
-const int blueLED = 13;  // D4 GPIO4
-Color createColor(redLED, greenLED, blueLED);
+Color createColor(redLED, greenLED);
 
 // Download files
 #include <WiFiClient.h>
@@ -206,9 +206,14 @@ void updateScreenAndTime()
   u8x8.drawString(0, 1, configString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
 
   u8x8.setCursor(0, 2);
-  String countString = "Count:" + String(count);
+  String countString = "Count:" + String(count) + "   ";
   u8x8.drawString(0, 2, countString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
 
+  u8x8.setCursor(0, 3);
+  String buttonString = "Knap:" + String(button.isPressed() ? "Aktiv" : "Ej i brug") + "  ";
+  u8x8.drawString(0, 3, buttonString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+
+  // Print date and time to serial
   Serial.print(daysOfTheWeek[timeClient.getDay()]);
   Serial.print(", ");
   Serial.print(timeClient.getHours());
@@ -219,6 +224,27 @@ void updateScreenAndTime()
   // Serial.println(timeClient.getFormattedTime());
 }
 
+unsigned long screenIsInitiated = 0;
+
+void screenPrintText(String text, unsigned long position, unsigned long line, unsigned long cleanScreen)
+{
+  if (!screenIsInitiated)
+  {
+    screenIsInitiated = 1;
+    // Screen begin
+    u8x8.begin();
+    u8x8.setFont(u8x8_font_victoriabold8_r);
+  }
+
+  if (cleanScreen)
+  {
+    u8x8.clearDisplay();
+  }
+
+  String stringTxt = text;
+  u8x8.drawString(position, line, stringTxt.c_str());
+}
+
 // SETUP
 void setup()
 {
@@ -226,14 +252,14 @@ void setup()
   button.setDebounceTime(50); // set debounce time to 50 milliseconds
   button.setCountMode(COUNT_FALLING);
 
-  // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
-  // it is a good practice to make sure your code sets wifi mode how you want it.
-
   // put your setup code here, to run once:
   Serial.begin(115200);
 
   // WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
   WiFiManager wm;
+
+  // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
+  // it is a good practice to make sure your code sets wifi mode how you want it.
 
   // reset settings - wipe stored credentials for testing
   // these are stored by the esp library
@@ -254,7 +280,8 @@ void setup()
     Serial.println("Failed to connect");
     // ESP.restart();
   }
-  else
+
+  if (res)
   {
     __WIFI_CONNECTED = true;
 
@@ -277,36 +304,39 @@ void setup()
     // Screen
     // initialize with the I2C addr 0x3C
     Serial.println("Screen begin");
-    // picture loop
-    u8x8.begin();
-    u8x8.setFont(u8x8_font_victoriabold8_r);
 
     // Color test
+    screenPrintText("whiteRed", 0, 0, 1);
     createColor.off();
-    u8x8.clearDisplay();
-    u8x8.drawString(0, 0, "whiteRed");
     createColor.whiteRed();
     delay(1000);
 
+    screenPrintText("whiteGreen", 0, 0, 1);
     createColor.off();
-    u8x8.clearDisplay();
-    u8x8.drawString(0, 0, "whiteGreen");
     createColor.whiteGreen();
     delay(1000);
 
-    createColor.off();
     u8x8.clearDisplay();
-    u8x8.drawString(0, 0, "Blink animation");
+    screenPrintText("Blink animation", 0, 0, 1);
+    createColor.off();
     createColor.blink();
 
     u8x8.clearDisplay();
-    u8x8.drawString(0, 0, "Done, wait 2sec");
-    delay(2000);
+    screenPrintText("Done wait 1sec", 0, 0, 1);
+    delay(1000);
 
     createColor.off();
 
     Serial.println("Screen end");
     u8x8.clearDisplay();
+  }
+  else
+  {
+    Serial.println("Configuration portal running");
+
+    u8x8.setCursor(0, 0);
+    String errorMessage = "Please setup wifi";
+    u8x8.drawString(0, 0, errorMessage.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
   }
 }
 
@@ -344,10 +374,24 @@ void loop()
   button.loop(); // MUST call the loop() function first
 
   if (button.isPressed())
+  {
     Serial.println("The button is pressed");
+    createColor.whiteBoth();
+  }
 
   if (button.isReleased())
+  {
     Serial.println("The button is released");
+    createColor.off();
+  }
+
+  if (lastButtonPressWasLongPress)
+  {
+    // Not long press tigger anymore, and fade light to confirm userinput
+    lastButtonPressWasLongPress = !lastButtonPressWasLongPress;
+    createColor.blink();
+    createColor.off();
+  }
 
   count = button.getCount();
 
@@ -385,24 +429,27 @@ void loop()
   {
     // Check if button press has been too long time ago
     unsigned long currentButtonmillis = millis();
-    if (button.getCount() > 0 && currentButtonmillis - lastButtonPressMillis >= 5000)
+    if (button.getCount() > 0 && currentButtonmillis - lastButtonPressMillis >= 3000)
     {
+      // Reset count
       button.resetCount();
       Serial.print("ResetButtonCount");
+
+      // Set state of longpress button
+      lastButtonPressWasLongPress = 1;
     }
   }
   // Every 1000
   if (delay_without_delaying(atime, 1000))
   {
     updateScreenAndTime();
-    Serial.print("\n");
   }
   if (delay_without_delaying(btime, 5000))
   {
-    Serial.print("B");
+    // Nothing right now - Serial.print("B");
   }
   if (delay_without_delaying(ctime, 500))
   {
-    Serial.print("C");
+    // Nothing right now - Serial.print("C");
   }
 }

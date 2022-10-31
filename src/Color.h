@@ -7,35 +7,18 @@ PWM colors for strips. Make with RGB LEDs
 
 #include "Arduino.h"
 
-class Color {
-  public:
-    Color(int redPIN, int greenPIN, int bluePIN);
-    void whiteRed();
-    void whiteGreen();
-    void off();
-    void blink();
-    // void red();
-    // void green();
-    // void blue();
+class Color
+{
+public:
+  Color(int redPIN, int greenPIN);
+  void whiteRed();
+  void whiteGreen();
+  void whiteBoth();
+  void off();
+  void blink();
 
-    // void orange();
-    // void lightgreen();
-    // void lightblue();
-    // void lightorange();
-    // void darkmagenta();
-    // void lightmagenta();
-    // void lightcyan();
-    // void yellow();
-    // void indigo();
-    // void cyan();
-    // void magenta();
-    // void white();
-    // void off();
-    // void pink();
-    // void rainbow();
-  private:
-    int _redPIN, _greenPIN, _bluePIN;
-
+private:
+  int _redPIN, _greenPIN;
 };
 
 #endif
