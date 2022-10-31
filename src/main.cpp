@@ -12,12 +12,21 @@
 // https://arduino-esp8266.readthedocs.io/en/2.4.1/esp8266wifi/client-secure-examples.html
 // https://www.theamplituhedron.com/articles/How-to-connect-to-an-SSL-protected-server-with-ESP8266(WiFiClient)/
 // https://maakbaas.com/esp8266-iot-framework/logs/https-requests/
+// https://github.com/WestfW/Duino-hacks/blob/master/delay_without_delay/delay_without_delay.ino
+// https://forum.arduino.cc/t/multiple-buttons-counting-their-presses/401180/5
+// https://forum.arduino.cc/t/pushing-button-once-twice-three-times-hold-do-action/677512/6
+// https://www.instructables.com/NodeMCU-ProjectButton-Control-LED/
+// https://www.calculator.net/resistor-calculator.html?bandnum=5&band1=brown&band2=black&band3=black&multiplier=red&tolerance=brown&temperatureCoefficient=brown&type=c&x=37&y=16
+// https://arduinogetstarted.com/tutorials/arduino-button-library
+// https://e-radionica.com/en/blog/what-is-pull-up-pull-down-resistor/
+// Button wirering: https://i.imgur.com/kr8ZFfU.png
 
 // HTTPS is currently insecure, but that's fine for our config.. But check this, if you need to fix it.. at some point
 // https://maakbaas.com/esp8266-iot-framework/logs/https-requests/
 
 // Guides
 // https://arduinojson.org/ (Json Arduino)
+// https://iotexpert.com/debugging-ssd1306-display-problems/
 
 // Inspiration
 // https://github.com/tzapu/WiFiManager/issues/1426
@@ -35,6 +44,7 @@
 #include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 #include <NTPClient.h>   // https://github.com/arduino-libraries/NTPClient
 #include <WiFiUdp.h>
+#include <ezButton.h>
 
 // VARS
 bool __WIFI_CONNECTED = false;
@@ -43,15 +53,16 @@ int __CONFIG_ENABLED_FROM = 0;
 int __CONFIG_ENABLED_TO = 0;
 int __CONFIG_STAND_UP_PERIOD_MIN = 0;
 
-int num_stations = 0;
-String errorMessage = "";
+// BUTTON VARS
+ezButton button(2); // create ezButton object; // // GPIO2 = D4
+unsigned long lastCount = 0;
+unsigned long count = 0;
+unsigned long lastButtonPressMillis = millis();
 
 // OLED SCREEN
 #include <U8g2lib.h>
 // Parameters
 char cstr[16]; // To convert int to char
-// Variables
-int oledCount = 0;
 
 // Objects
 //  VIRKER 128x64: U8X8_SH1106_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
@@ -176,9 +187,45 @@ void get_json_config(void)
   }
 }
 
+void updateScreenAndTime()
+{
+  // u8x8.setFont(u8x8_font_chroma48medium8_r);
+  // u8x8.drawString(0,0,"Hello World!");
+  // delay(1000);
+
+  // Time
+  timeClient.update();
+
+  String formattedTime = timeClient.getFormattedTime();
+  // const char * c = formattedTime.c_str();
+
+  u8x8.setCursor(0, 0);
+  u8x8.drawString(0, 0, formattedTime.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+  u8x8.setCursor(0, 1);
+  String configString = "F:" + String(__CONFIG_ENABLED_FROM) + ",T:" + String(__CONFIG_ENABLED_TO) + ",M:" + String(__CONFIG_STAND_UP_PERIOD_MIN);
+  u8x8.drawString(0, 1, configString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+
+  u8x8.setCursor(0, 2);
+  String countString = "Count:" + String(count);
+  u8x8.drawString(0, 2, countString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+
+  Serial.print(daysOfTheWeek[timeClient.getDay()]);
+  Serial.print(", ");
+  Serial.print(timeClient.getHours());
+  Serial.print(":");
+  Serial.print(timeClient.getMinutes());
+  Serial.print(":");
+  Serial.println(timeClient.getSeconds());
+  // Serial.println(timeClient.getFormattedTime());
+}
+
 // SETUP
 void setup()
 {
+  // Buttons
+  button.setDebounceTime(50); // set debounce time to 50 milliseconds
+  button.setCountMode(COUNT_FALLING);
+
   // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   // it is a good practice to make sure your code sets wifi mode how you want it.
 
@@ -263,32 +310,99 @@ void setup()
   }
 }
 
+// Delays
+boolean delay_without_delaying(unsigned long time)
+{
+  // return false if we're still "delaying", true if time ms has passed.
+  // this should look a lot like "blink without delay"
+  static unsigned long previousmillis = 0;
+  unsigned long currentmillis = millis();
+  if (currentmillis - previousmillis >= time)
+  {
+    previousmillis = currentmillis;
+    return true;
+  }
+  return false;
+}
+
+boolean delay_without_delaying(unsigned long &since, unsigned long time)
+{
+  // return false if we're still "delaying", true if time ms has passed.
+  // this should look a lot like "blink without delay"
+  unsigned long currentmillis = millis();
+  if (currentmillis - since >= time)
+  {
+    since = currentmillis;
+    return true;
+  }
+  return false;
+}
+
 void loop()
 {
-  // u8x8.setFont(u8x8_font_chroma48medium8_r);
-  // u8x8.drawString(0,0,"Hello World!");
-  // delay(1000);
+  // Button counts
+  button.loop(); // MUST call the loop() function first
 
-  // Time
-  timeClient.update();
+  if (button.isPressed())
+    Serial.println("The button is pressed");
 
-  String formattedTime = timeClient.getFormattedTime();
-  // const char * c = formattedTime.c_str();
+  if (button.isReleased())
+    Serial.println("The button is released");
 
-  u8x8.setCursor(0, 0);
-  u8x8.drawString(0, 0, formattedTime.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
-  u8x8.setCursor(0, 1);
-  String configString = "F:" + String(__CONFIG_ENABLED_FROM) + ",T:" + String(__CONFIG_ENABLED_TO) + ",M:" + String(__CONFIG_STAND_UP_PERIOD_MIN);
-  u8x8.drawString(0, 1, configString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+  count = button.getCount();
 
-  delay(1000);
+  if (count != lastCount)
+  {
+    Serial.println(count);
 
-  Serial.print(daysOfTheWeek[timeClient.getDay()]);
-  Serial.print(", ");
-  Serial.print(timeClient.getHours());
-  Serial.print(":");
-  Serial.print(timeClient.getMinutes());
-  Serial.print(":");
-  Serial.println(timeClient.getSeconds());
-  // Serial.println(timeClient.getFormattedTime());
+    int countIn3 = count % 3 + 1;
+
+    lastButtonPressMillis = millis();
+
+    switch (countIn3)
+    {
+    case 1:
+      Serial.println("Case 1, woop");
+      break;
+
+    case 2:
+      Serial.println("Case 2, woop");
+      break;
+
+    case 3:
+      Serial.println("Case 3, woop");
+      break;
+    }
+
+    lastCount = count;
+  }
+
+  // Loop, different timeperiods
+  static unsigned long ledtime = 0;
+  static unsigned long atime, btime, ctime;
+
+  if (delay_without_delaying(ledtime, 500))
+  {
+    // Check if button press has been too long time ago
+    unsigned long currentButtonmillis = millis();
+    if (button.getCount() > 0 && currentButtonmillis - lastButtonPressMillis >= 5000)
+    {
+      button.resetCount();
+      Serial.print("ResetButtonCount");
+    }
+  }
+  // Every 1000
+  if (delay_without_delaying(atime, 1000))
+  {
+    updateScreenAndTime();
+    Serial.print("\n");
+  }
+  if (delay_without_delaying(btime, 5000))
+  {
+    Serial.print("B");
+  }
+  if (delay_without_delaying(ctime, 500))
+  {
+    Serial.print("C");
+  }
 }
