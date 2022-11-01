@@ -60,11 +60,11 @@ int __CONFIG_ENABLED_TO = 0;
 int __CONFIG_STAND_UP_PERIOD_MIN = 0;
 
 //-- STAND_UP
-int __CURRENT_IS_STANDING = 0;
-int __CURRENT_IS_SITTING = 0;
+bool __CURRENT_IS_STANDING = 0;
+bool __CURRENT_IS_SITTING = 0;
 int __CURRENT_START_PERIOD_TIME_MIN = 0;
-int __CURRENT_FROM_TIME_MIN = 0;
-int __CURRENT_TO_TIME_MIN = 0;
+int __CURRENT_FROM_TIME_SEC = 0;
+int __CURRENT_TO_TIME_SEC = 0;
 int __CHANGE_POSITION_PREVIOUS = 0;
 int __CHANGE_POSITION_NEXT = 0;
 
@@ -247,13 +247,13 @@ int getStandUpStartPeriod()
 void setNextPeriodTime()
 {
   int __START_PERIOD_MM = int(getStandUpStartPeriod());
-  __CURRENT_FROM_TIME_MIN = (__CONFIG_ENABLED_FROM * 60 * 60);                        // HH ie. 17 * 60 * 60
-  __CURRENT_TO_TIME_MIN = (__CONFIG_ENABLED_TO * 60 * 60) + (__START_PERIOD_MM * 60); // HH ie. 17 * 60 * 60
+  __CURRENT_FROM_TIME_SEC = (__CONFIG_ENABLED_FROM * 60 * 60);                        // HH ie. 17 * 60 * 60
+  __CURRENT_TO_TIME_SEC = (__CONFIG_ENABLED_TO * 60 * 60) + (__START_PERIOD_MM * 60); // HH ie. 17 * 60 * 60 + MM
 
   Serial.println("");
   Serial.println("__START_PERIOD_MIN " + String(__START_PERIOD_MM));
-  Serial.println("__CURRENT_FROM_TIME_MIN " + String(__CURRENT_FROM_TIME_MIN));
-  Serial.println("__CURRENT_TO_TIME_MIN " + String(__CURRENT_TO_TIME_MIN));
+  Serial.println("__CURRENT_FROM_TIME_SEC " + String(__CURRENT_FROM_TIME_SEC));
+  Serial.println("__CURRENT_TO_TIME_SEC " + String(__CURRENT_TO_TIME_SEC));
   Serial.println("__CHANGE_POSITION_PREVIOUS " + String(__CHANGE_POSITION_PREVIOUS));
 
   __CHANGE_POSITION_PREVIOUS = __CHANGE_POSITION_NEXT;
@@ -271,7 +271,7 @@ void setNextPeriodTime()
   }
 
   // If next position change is out of allowed period
-  if (__CHANGE_POSITION_NEXT > __CURRENT_TO_TIME_MIN)
+  if (__CHANGE_POSITION_NEXT > __CURRENT_TO_TIME_SEC)
   {
     __CHANGE_POSITION_NEXT = (__CONFIG_ENABLED_FROM * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
     Serial.println("Bob3");
@@ -292,17 +292,26 @@ void updatePositionInfo()
 
   if (__CURRENT_IS_STANDING)
   {
-    createColor.whiteGreen();
+    Serial.println("Standing...  Sitting");
+    createColor.whiteRed();
     __CURRENT_IS_STANDING = 0;
     __CURRENT_IS_SITTING = 1;
   }
-
-  if (__CURRENT_IS_SITTING)
+  else if (__CURRENT_IS_SITTING)
   {
-    createColor.whiteRed();
+    Serial.println("Sitting... Standing");
+    createColor.whiteGreen();
     __CURRENT_IS_STANDING = 1;
     __CURRENT_IS_SITTING = 0;
   }
+  else if (!__CURRENT_IS_SITTING && !__CURRENT_IS_STANDING)
+  {
+    Serial.println("NOTHING... Standing");
+    createColor.whiteGreen();
+    __CURRENT_IS_STANDING = 1;
+    __CURRENT_IS_SITTING = 0;
+  }
+  Serial.println("Nope...  nah");
 }
 
 void checkPositionGuidance()
@@ -315,22 +324,33 @@ void checkPositionGuidance()
   // __CURRENT_START_PERIOD_TIME_MIN = 0;
 
   __THIS_TIME = (__TIME_HH * 60 * 60) + (__TIME_MM * 60) + (__TIME_SS);
-  Serial.print("This time" + String(__THIS_TIME));
+  Serial.println("This time" + String(__THIS_TIME) + " .. " + String(__CHANGE_POSITION_NEXT));
 
   // Fresh run
-  if (!__CHANGE_POSITION_PREVIOUS and !__CHANGE_POSITION_NEXT)
-  {
-    setNextPeriodTime();
-  }
-
-  // Check if a change is needed
-  if (
-      __THIS_TIME > __CURRENT_FROM_TIME_MIN &&
-      __THIS_TIME < __CURRENT_TO_TIME_MIN &&
-      __THIS_TIME >= __CHANGE_POSITION_NEXT)
+  if (int(__CHANGE_POSITION_NEXT) == (0))
   {
     setNextPeriodTime();
     updatePositionInfo();
+    Serial.println("NPIX " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
+  }
+  else if ( // Check if a change is needed
+      __THIS_TIME > __CURRENT_FROM_TIME_SEC &&
+      __THIS_TIME <= __CURRENT_TO_TIME_SEC &&
+      __THIS_TIME > __CHANGE_POSITION_NEXT)
+  {
+    setNextPeriodTime();
+    updatePositionInfo();
+    Serial.println("NPIY " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
+  }
+
+  if (__THIS_TIME > __CHANGE_POSITION_NEXT)
+  {
+    Serial.println("...1 __THIS_TIME > __CHANGE_POSITION_NEXT");
+  }
+
+  if (int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT))
+  {
+    Serial.println("...2 __THIS_TIME > __CHANGE_POSITION_NEXT");
   }
 }
 
@@ -347,9 +367,21 @@ void updateScreenAndTime()
   String countString = "Count:" + String(count) + "   ";
   screenPrintText(countString.c_str(), 0, 2, 0);
 
-  // Line 3
+  // Line 4
   String buttonString = "Knap:" + String(buttonIsPressed ? "Aktiv    " : "Ej i brug") + "  ";
   screenPrintText(buttonString.c_str(), 0, 3, 0);
+
+  // Line 5
+  String extraString1 = "_T_T:" + String(__THIS_TIME);
+  screenPrintText(extraString1.c_str(), 0, 4, 0);
+
+  // Line 6
+  String extraString2 = "_C_P_N:" + String(__CHANGE_POSITION_NEXT);
+  screenPrintText(extraString2.c_str(), 0, 5, 0);
+
+  // Line 7
+  String extraString3 = "_CS_M:" + String(__CURRENT_START_PERIOD_TIME_MIN);
+  screenPrintText(extraString3.c_str(), 0, 6, 0);
 
   // Print date and time to serial
   Serial.println(daysOfTheWeek[timeClient.getDay()] + __TIME_FORMATTED);
@@ -441,6 +473,9 @@ void setup()
 
     Serial.println("Screen end");
     u8x8.clearDisplay();
+
+    // Update position first time
+    updatePositionInfo();
   }
   else
   {
@@ -504,14 +539,14 @@ void loop()
   {
     Serial.println("The button is pressed");
     buttonIsPressed = 1;
-    createColor.whiteBoth();
+    // createColor.whiteBoth();
   }
 
   if (button.isReleased())
   {
     Serial.println("The button is released");
     buttonIsPressed = 0;
-    createColor.off();
+    // createColor.off();
   }
 
   // If no wifi, skip the rest...
@@ -524,18 +559,36 @@ void loop()
   {
     // Not long press tigger anymore, and fade light to confirm userinput
     lastButtonPressWasLongPress = !lastButtonPressWasLongPress;
-    createColor.off();
     screenPrintText("New MM period:", 0, 0, 1);
     screenPrintText(String(__TIME_MM), 0, 1, 0);
     screenPrintText("saved :)...", 0, 2, 0);
-    createColor.blink();
+    createColor.off();
+    createColor.whiteRed();
+    delay(200);
+    createColor.off();
+    createColor.whiteGreen();
+    delay(200);
+    createColor.off();
+    createColor.whiteRed();
+    delay(200);
+    createColor.off();
+    createColor.whiteGreen();
+    delay(200);
+    createColor.off();
+    createColor.whiteRed();
+    delay(200);
+    createColor.off();
+    createColor.whiteGreen();
+    delay(200);
+    createColor.off();
+
     // Set the new minute target
-    __CURRENT_START_PERIOD_TIME_MIN = __TIME_MM + 1;
+    __CURRENT_START_PERIOD_TIME_MIN = __TIME_MM;
     __CHANGE_POSITION_NEXT = 0;
     __CHANGE_POSITION_PREVIOUS = 0;
     // Calculate new targets
-    checkPositionGuidance();
-    createColor.off();
+    // createColor.off();
+    setNextPeriodTime();
   }
 
   count = button.getCount();
@@ -544,11 +597,11 @@ void loop()
   {
     Serial.println(count);
 
-    int countIn3 = count % 3 + 1;
+    int countIn6 = count % 6 + 1;
 
     lastButtonPressMillis = millis();
 
-    switch (countIn3)
+    switch (countIn6)
     {
     case 1:
       Serial.println("Case 1, woop");
@@ -560,6 +613,20 @@ void loop()
 
     case 3:
       Serial.println("Case 3, woop");
+      break;
+
+    case 4:
+      Serial.println("Case 4, woop");
+      break;
+
+    case 5:
+      Serial.println("Case 5, woop");
+      break;
+
+    case 6:
+      Serial.println("Case 6, woop");
+      setNextPeriodTime();
+
       break;
     }
 
