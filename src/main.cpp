@@ -259,7 +259,8 @@ void setNextPeriodTime()
   __CHANGE_POSITION_PREVIOUS = __CHANGE_POSITION_NEXT;
 
   // If target MM is already passed
-  if (__TIME_MM > __START_PERIOD_MM)
+  // If same minute, add one hour... Else we'll stick to the same minute, in 60 sec
+  if (__TIME_MM >= __START_PERIOD_MM)
   {
     __CHANGE_POSITION_NEXT = ((__TIME_HH + 1) * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
     Serial.println("Bob1:" + String(__CHANGE_POSITION_NEXT));
@@ -270,7 +271,7 @@ void setNextPeriodTime()
     Serial.println("Bob2");
   }
 
-  // If next position change is out of allowed period
+  // If next position change is out of allowed period...
   if (__CHANGE_POSITION_NEXT > __CURRENT_TO_TIME_SEC)
   {
     __CHANGE_POSITION_NEXT = (__CONFIG_ENABLED_FROM * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
@@ -334,9 +335,9 @@ void checkPositionGuidance()
     Serial.println("NPIX " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
   }
   else if ( // Check if a change is needed
-      __THIS_TIME > __CURRENT_FROM_TIME_SEC &&
-      __THIS_TIME <= __CURRENT_TO_TIME_SEC &&
-      __THIS_TIME > __CHANGE_POSITION_NEXT)
+      int(__THIS_TIME) > int(__CURRENT_FROM_TIME_SEC) &&
+      int(__THIS_TIME) <= int(__CURRENT_TO_TIME_SEC) &&
+      int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT))
   {
     setNextPeriodTime();
     updatePositionInfo();
