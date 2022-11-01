@@ -351,15 +351,15 @@ void checkPositionGuidance()
     Serial.println("NPIY " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
   }
 
-  if (__THIS_TIME > __CHANGE_POSITION_NEXT)
-  {
-    Serial.println("...1 __THIS_TIME > __CHANGE_POSITION_NEXT");
-  }
+  // if (__THIS_TIME > __CHANGE_POSITION_NEXT)
+  // {
+  //   Serial.println("...1 __THIS_TIME > __CHANGE_POSITION_NEXT");
+  // }
 
-  if (int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT))
-  {
-    Serial.println("...2 __THIS_TIME > __CHANGE_POSITION_NEXT");
-  }
+  // if (int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT))
+  // {
+  //   Serial.println("...2 __THIS_TIME > __CHANGE_POSITION_NEXT");
+  // }
 }
 
 void updateScreenAndTime()
