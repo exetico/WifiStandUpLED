@@ -59,6 +59,21 @@ int __CONFIG_ENABLED_FROM = 0;
 int __CONFIG_ENABLED_TO = 0;
 int __CONFIG_STAND_UP_PERIOD_MIN = 0;
 
+//-- STAND_UP
+int __CURRENT_IS_STANDING = 0;
+int __CURRENT_IS_SITTING = 0;
+int __CURRENT_START_PERIOD_TIME_MIN = 0;
+int __CURRENT_FROM_TIME_MIN = 0;
+int __CURRENT_TO_TIME_MIN = 0;
+int __CHANGE_POSITION_PREVIOUS = 0;
+int __CHANGE_POSITION_NEXT = 0;
+
+//-- TIME
+int __TIME_HH = 0;
+int __TIME_MM = 0;
+int __TIME_SS = 0;
+String __TIME_FORMATTED = "";
+
 //-- BUTTONS
 ezButton button(2); // GPIO2 = D4
 unsigned long lastCount = 0;
@@ -105,6 +120,25 @@ char *CONFIG_HOST = "tobiasnordahl.dk";
 
 String CONFIG_URL = String(HTTPS_START) + String(CONFIG_HOST) + String(HTTPS_PATH);
 const char *URL_COMPLETE = CONFIG_URL.c_str();
+
+void screenPrintText(String text, unsigned long position, unsigned long line, unsigned long cleanScreen)
+{
+  if (!screenIsInitiated)
+  {
+    screenIsInitiated = 1;
+    // Screen begin
+    u8x8.begin();
+    u8x8.setFont(u8x8_font_victoriabold8_r);
+  }
+
+  if (cleanScreen)
+  {
+    u8x8.clearDisplay();
+  }
+
+  String stringTxt = text;
+  u8x8.drawString(position, line, stringTxt.c_str());
+}
 
 void log_i(const String &txt, int configInt)
 {
@@ -194,67 +228,125 @@ void get_json_config(void)
   }
 }
 
-void updateTablePosition()
+int getStandUpStartPeriod()
 {
-  Serial.print("TablePosition");
+  // If used has defined another period by using the button
+  if (__CURRENT_START_PERIOD_TIME_MIN)
+  {
+    return __CURRENT_START_PERIOD_TIME_MIN;
+  }
+
+  // Else, default to first minute in hour
+  return 0;
+}
+
+void setNextPeriodTime()
+{
+  int __START_PERIOD_MM = getStandUpStartPeriod();
+  __CURRENT_FROM_TIME_MIN = (__CONFIG_ENABLED_FROM * 60 * 60);                        // HH ie. 17 * 60 * 60
+  __CURRENT_TO_TIME_MIN = (__CONFIG_ENABLED_TO * 60 * 60) + (__START_PERIOD_MM * 60); // HH ie. 17 * 60 * 60
+
+  Serial.println("");
+  Serial.println("__START_PERIOD_MIN" + String(__START_PERIOD_MM));
+  Serial.println("__CURRENT_FROM_TIME_MIN" + String(__CURRENT_FROM_TIME_MIN));
+  Serial.println("__CURRENT_TO_TIME_MIN" + String(__CURRENT_TO_TIME_MIN));
+
+  __CHANGE_POSITION_PREVIOUS = __CHANGE_POSITION_NEXT;
+
+  // If target MM is already passed
+  if (__TIME_MM > __START_PERIOD_MM)
+  {
+    __CHANGE_POSITION_NEXT = ((__TIME_HH + 1) * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+  }
+  else
+  {
+    __CHANGE_POSITION_NEXT = (__TIME_HH * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+  }
+
+  // If next position change is out of allowed period
+  if (__CHANGE_POSITION_NEXT > __CURRENT_TO_TIME_MIN)
+  {
+    __CHANGE_POSITION_NEXT = (__CONFIG_ENABLED_FROM * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+  }
+}
+
+void updatePositionInfo()
+{
+  // Update screen
+  screenPrintText("Update position", 0, 1, 0);
+
+  // Update light
+  createColor.off();
+
+  if (__CURRENT_IS_STANDING)
+  {
+    createColor.whiteGreen();
+    __CURRENT_IS_STANDING = 0;
+    __CURRENT_IS_SITTING = 1;
+  }
+
+  if (__CURRENT_IS_SITTING)
+  {
+    createColor.whiteRed();
+    __CURRENT_IS_STANDING = 1;
+    __CURRENT_IS_SITTING = 0;
+  }
+}
+
+void checkPositionGuidance()
+{
+  // __CONFIG_ENABLED_FROM = 0;
+  // __CONFIG_ENABLED_TO = 0;
+  // __CONFIG_STAND_UP_PERIOD_MIN = 0;
+  // __CURRENT_IS_STANDING = 0;
+  // __CURRENT_IS_SITTING = 0;
+  // __CURRENT_START_PERIOD_TIME_MIN = 0;
+
+  int __THIS_TIME = (__TIME_HH * 60 * 60) + (__TIME_MM * 60) + (__TIME_SS);
+  Serial.print("This time" + __THIS_TIME);
+
+  // Fresh run
+  if (!__CHANGE_POSITION_PREVIOUS and !__CHANGE_POSITION_NEXT)
+  {
+    setNextPeriodTime();
+  }
+
+  // Check if a change is needed
+  if (
+      __THIS_TIME > __CURRENT_FROM_TIME_MIN &&
+      __THIS_TIME < __CURRENT_TO_TIME_MIN &&
+      __THIS_TIME >= __CHANGE_POSITION_NEXT)
+  {
+    setNextPeriodTime();
+    updatePositionInfo();
+  }
 }
 
 void updateScreenAndTime()
 {
-  // u8x8.setFont(u8x8_font_chroma48medium8_r);
-  // u8x8.drawString(0,0,"Hello World!");
-  // delay(1000);
-
-  // Time
-  timeClient.update();
-
-  String formattedTime = timeClient.getFormattedTime();
-  // const char * c = formattedTime.c_str();
-
+  // Line 1
   u8x8.setCursor(0, 0);
-  u8x8.drawString(0, 0, formattedTime.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+  u8x8.drawString(0, 0, __TIME_FORMATTED.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
   u8x8.setCursor(0, 1);
   String configString = "F:" + String(__CONFIG_ENABLED_FROM) + ",T:" + String(__CONFIG_ENABLED_TO) + ",M:" + String(__CONFIG_STAND_UP_PERIOD_MIN);
   u8x8.drawString(0, 1, configString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
 
+  // Line 2
   u8x8.setCursor(0, 2);
   String countString = "Count:" + String(count) + "   ";
   u8x8.drawString(0, 2, countString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
 
+  // Line 3
   u8x8.setCursor(0, 3);
   String buttonString = "Knap:" + String(buttonIsPressed ? "Aktiv    " : "Ej i brug") + "  ";
   u8x8.drawString(0, 3, buttonString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
 
   // Print date and time to serial
   Serial.print(daysOfTheWeek[timeClient.getDay()]);
-  Serial.print(", ");
-  Serial.print(timeClient.getHours());
-  Serial.print(":");
-  Serial.print(timeClient.getMinutes());
-  Serial.print(":");
-  Serial.println(timeClient.getSeconds());
-  // Serial.println(timeClient.getFormattedTime());
+  Serial.print(__TIME_FORMATTED);
 
-  updateTablePosition();
-}
-
-void screenPrintText(String text, unsigned long position, unsigned long line, unsigned long cleanScreen)
-{
-  if (!screenIsInitiated)
-  {
-    screenIsInitiated = 1;
-    // Screen begin
-    u8x8.begin();
-    u8x8.setFont(u8x8_font_victoriabold8_r);
-  }
-
-  if (cleanScreen)
-  {
-    u8x8.clearDisplay();
-  }
-
-  String stringTxt = text;
-  u8x8.drawString(position, line, stringTxt.c_str());
+  // Update our table position
+  checkPositionGuidance();
 }
 
 // SETUP
@@ -338,12 +430,10 @@ void setup()
     createColor.whiteGreen();
     delay(1000);
 
-    u8x8.clearDisplay();
     screenPrintText("Blink animation", 0, 0, 1);
     createColor.off();
     createColor.blink();
 
-    u8x8.clearDisplay();
     screenPrintText("Done wait 1sec", 0, 0, 1);
     delay(1000);
 
@@ -355,10 +445,13 @@ void setup()
   else
   {
     Serial.println("Configuration portal running");
-
-    u8x8.setCursor(0, 0);
-    String errorMessage = "Please setup wifi";
-    u8x8.drawString(0, 0, errorMessage.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+    screenPrintText("No WiFi", 0, 0, 1);
+    screenPrintText("-Restart", 0, 1, 0);
+    screenPrintText("-Change SSID", 0, 2, 0);
+    screenPrintText("-Ping me", 0, 3, 0);
+    screenPrintText("-Try stand up", 0, 4, 0);
+    screenPrintText("", 0, 5, 0);
+    screenPrintText("Hotspot enabled", 0, 6, 0);
   }
 }
 
@@ -409,12 +502,25 @@ void loop()
     createColor.off();
   }
 
+  // If no wifi, skip the rest...
+  if (!__WIFI_CONNECTED)
+  {
+    return;
+  }
+
   if (lastButtonPressWasLongPress)
   {
     // Not long press tigger anymore, and fade light to confirm userinput
     lastButtonPressWasLongPress = !lastButtonPressWasLongPress;
     createColor.off();
+    screenPrintText("Period set to MM: " + String(__TIME_MM), 0, 0, 1);
     createColor.blink();
+    // Set the new minute target
+    __CURRENT_START_PERIOD_TIME_MIN = __TIME_MM;
+    __CHANGE_POSITION_NEXT = 0;
+    __CHANGE_POSITION_PREVIOUS = 0;
+    // Calculate new targets
+    checkPositionGuidance();
     createColor.off();
   }
 
@@ -468,6 +574,13 @@ void loop()
   // Every 1000
   if (delay_without_delaying(atime, 1000))
   {
+    // Update time
+    timeClient.update();
+    __TIME_HH = timeClient.getHours();
+    __TIME_MM = timeClient.getMinutes();
+    __TIME_SS = timeClient.getSeconds();
+    __TIME_FORMATTED = timeClient.getFormattedTime();
+
     updateScreenAndTime();
   }
   if (delay_without_delaying(btime, 5000))
