@@ -315,6 +315,12 @@ void updatePositionInfo()
   Serial.println("Nope...  nah");
 }
 
+void updateTimeAndPosition()
+{
+  setNextPeriodTime();
+  updatePositionInfo();
+}
+
 void checkPositionGuidance()
 {
   // __CONFIG_ENABLED_FROM = 0;
@@ -330,8 +336,7 @@ void checkPositionGuidance()
   // Fresh run
   if (int(__CHANGE_POSITION_NEXT) == (0))
   {
-    setNextPeriodTime();
-    updatePositionInfo();
+    updateTimeAndPosition();
     Serial.println("NPIX " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
   }
   else if ( // Check if a change is needed
@@ -339,8 +344,7 @@ void checkPositionGuidance()
       int(__THIS_TIME) <= int(__CURRENT_TO_TIME_SEC) &&
       int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT))
   {
-    setNextPeriodTime();
-    updatePositionInfo();
+    updateTimeAndPosition();
     Serial.println("NPIY " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
   }
 
@@ -456,19 +460,19 @@ void setup()
     screenPrintText("whiteRed", 0, 0, 1);
     createColor.off();
     createColor.whiteRed();
-    delay(1000);
+    delay(200);
 
     screenPrintText("whiteGreen", 0, 0, 1);
     createColor.off();
     createColor.whiteGreen();
-    delay(1000);
+    delay(200);
 
     screenPrintText("Blink animation", 0, 0, 1);
     createColor.off();
-    createColor.blink();
+    createColor.blinkShort();
 
-    screenPrintText("Done wait 1sec", 0, 0, 1);
-    delay(1000);
+    screenPrintText("Done wait 0.2sec", 0, 0, 1);
+    delay(200);
 
     createColor.off();
 
@@ -589,7 +593,7 @@ void loop()
     __CHANGE_POSITION_PREVIOUS = 0;
     // Calculate new targets
     // createColor.off();
-    setNextPeriodTime();
+    updateTimeAndPosition();
   }
 
   count = button.getCount();

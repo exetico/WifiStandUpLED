@@ -69,3 +69,37 @@ void Color::blink()
     delay(FADESPEED);
   }
 }
+
+void Color::blinkShort()
+{
+  int FADESPEED = 2;
+  int FADE_LIMIT = 255;
+  int FADE_OFFSET = 10; // Adjust if strip does not go to 0
+
+  for (int r = 0; r < FADE_LIMIT + 1; r++)
+  {
+    analogWrite(_redPIN, FADE_LIMIT - r);
+    delay(FADESPEED);
+  }
+
+  // fade from yellow to green
+  for (int r = FADE_LIMIT + 1; r > 0; r--)
+  {
+    analogWrite(_redPIN, FADE_LIMIT - r + FADE_OFFSET);
+    delay(FADESPEED);
+  }
+
+  // fade from red to yellow
+  for (int g = 0; g < FADE_LIMIT + 1; g++)
+  {
+    analogWrite(_greenPIN, FADE_LIMIT - g);
+    delay(FADESPEED);
+  }
+
+  // fade from yellow to green
+  for (int r = FADE_LIMIT + 1; r > 0; r--)
+  {
+    analogWrite(_greenPIN, FADE_LIMIT - r + FADE_OFFSET);
+    delay(FADESPEED);
+  }
+}

@@ -16,6 +16,7 @@ public:
   void whiteBoth();
   void off();
   void blink();
+  void blinkShort();
 
 private:
   int _redPIN, _greenPIN;
