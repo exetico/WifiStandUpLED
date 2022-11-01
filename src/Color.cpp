@@ -72,7 +72,7 @@ void Color::blink()
 
 void Color::blinkShort()
 {
-  int FADESPEED = 2;
+  int FADESPEED = 1; // Lower= Faster... Higher=Slower
   int FADE_LIMIT = 255;
   int FADE_OFFSET = 10; // Adjust if strip does not go to 0
 
