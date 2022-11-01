@@ -460,20 +460,18 @@ void setup()
     screenPrintText("whiteRed", 0, 0, 1);
     createColor.off();
     createColor.whiteRed();
-    delay(200);
+    delay(300);
 
     screenPrintText("whiteGreen", 0, 0, 1);
     createColor.off();
     createColor.whiteGreen();
-    delay(200);
+    delay(300);
 
     screenPrintText("Blink animation", 0, 0, 1);
     createColor.off();
     createColor.blinkShort();
-
-    screenPrintText("Done wait 0.2sec", 0, 0, 1);
-    delay(200);
-
+    screenPrintText("Done wait 0.5sec", 0, 0, 1);
+    delay(500);
     createColor.off();
 
     Serial.println("Screen end");
