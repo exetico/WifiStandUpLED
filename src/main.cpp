@@ -69,6 +69,7 @@ int __CHANGE_POSITION_PREVIOUS = 0;
 int __CHANGE_POSITION_NEXT = 0;
 
 //-- TIME
+int __THIS_TIME = 0;
 int __TIME_HH = 0;
 int __TIME_MM = 0;
 int __TIME_SS = 0;
@@ -120,6 +121,9 @@ char *CONFIG_HOST = "tobiasnordahl.dk";
 
 String CONFIG_URL = String(HTTPS_START) + String(CONFIG_HOST) + String(HTTPS_PATH);
 const char *URL_COMPLETE = CONFIG_URL.c_str();
+
+// WIFI - WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
+WiFiManager wm;
 
 void screenPrintText(String text, unsigned long position, unsigned long line, unsigned long cleanScreen)
 {
@@ -242,14 +246,15 @@ int getStandUpStartPeriod()
 
 void setNextPeriodTime()
 {
-  int __START_PERIOD_MM = getStandUpStartPeriod();
+  int __START_PERIOD_MM = int(getStandUpStartPeriod());
   __CURRENT_FROM_TIME_MIN = (__CONFIG_ENABLED_FROM * 60 * 60);                        // HH ie. 17 * 60 * 60
   __CURRENT_TO_TIME_MIN = (__CONFIG_ENABLED_TO * 60 * 60) + (__START_PERIOD_MM * 60); // HH ie. 17 * 60 * 60
 
   Serial.println("");
-  Serial.println("__START_PERIOD_MIN" + String(__START_PERIOD_MM));
-  Serial.println("__CURRENT_FROM_TIME_MIN" + String(__CURRENT_FROM_TIME_MIN));
-  Serial.println("__CURRENT_TO_TIME_MIN" + String(__CURRENT_TO_TIME_MIN));
+  Serial.println("__START_PERIOD_MIN " + String(__START_PERIOD_MM));
+  Serial.println("__CURRENT_FROM_TIME_MIN " + String(__CURRENT_FROM_TIME_MIN));
+  Serial.println("__CURRENT_TO_TIME_MIN " + String(__CURRENT_TO_TIME_MIN));
+  Serial.println("__CHANGE_POSITION_PREVIOUS " + String(__CHANGE_POSITION_PREVIOUS));
 
   __CHANGE_POSITION_PREVIOUS = __CHANGE_POSITION_NEXT;
 
@@ -257,17 +262,24 @@ void setNextPeriodTime()
   if (__TIME_MM > __START_PERIOD_MM)
   {
     __CHANGE_POSITION_NEXT = ((__TIME_HH + 1) * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+    Serial.println("Bob1:" + String(__CHANGE_POSITION_NEXT));
   }
   else
   {
     __CHANGE_POSITION_NEXT = (__TIME_HH * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+    Serial.println("Bob2");
   }
 
   // If next position change is out of allowed period
   if (__CHANGE_POSITION_NEXT > __CURRENT_TO_TIME_MIN)
   {
     __CHANGE_POSITION_NEXT = (__CONFIG_ENABLED_FROM * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+    Serial.println("Bob3");
+    Serial.println("Bob3: " + String(__CHANGE_POSITION_NEXT));
   }
+
+  Serial.println("__CHANGE_POSITION_PREVIOUS " + String(__CHANGE_POSITION_PREVIOUS));
+  Serial.println("__CHANGE_POSITION_NEXT " + String(__CHANGE_POSITION_NEXT));
 }
 
 void updatePositionInfo()
@@ -302,7 +314,8 @@ void checkPositionGuidance()
   // __CURRENT_IS_SITTING = 0;
   // __CURRENT_START_PERIOD_TIME_MIN = 0;
 
-  int __THIS_TIME = (__TIME_HH * 60 * 60) + (__TIME_MM * 60) + (__TIME_SS);
+  Serial.print("This time" + __THIS_TIME);
+  __THIS_TIME = (__TIME_HH * 60 * 60) + (__TIME_MM * 60) + (__TIME_SS);
   Serial.print("This time" + __THIS_TIME);
 
   // Fresh run
@@ -325,25 +338,22 @@ void checkPositionGuidance()
 void updateScreenAndTime()
 {
   // Line 1
-  u8x8.setCursor(0, 0);
-  u8x8.drawString(0, 0, __TIME_FORMATTED.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
-  u8x8.setCursor(0, 1);
-  String configString = "F:" + String(__CONFIG_ENABLED_FROM) + ",T:" + String(__CONFIG_ENABLED_TO) + ",M:" + String(__CONFIG_STAND_UP_PERIOD_MIN);
-  u8x8.drawString(0, 1, configString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+  screenPrintText(__TIME_FORMATTED.c_str(), 0, 0, 1); // Txt needs to be "const char * c "... In String-type, that can be done
 
   // Line 2
-  u8x8.setCursor(0, 2);
-  String countString = "Count:" + String(count) + "   ";
-  u8x8.drawString(0, 2, countString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+  String configString = "F:" + String(__CONFIG_ENABLED_FROM) + ",T:" + String(__CONFIG_ENABLED_TO) + ",M:" + String(__CONFIG_STAND_UP_PERIOD_MIN);
+  screenPrintText(configString.c_str(), 0, 1, 0);
 
   // Line 3
-  u8x8.setCursor(0, 3);
+  String countString = "Count:" + String(count) + "   ";
+  screenPrintText(countString.c_str(), 0, 2, 0);
+
+  // Line 3
   String buttonString = "Knap:" + String(buttonIsPressed ? "Aktiv    " : "Ej i brug") + "  ";
-  u8x8.drawString(0, 3, buttonString.c_str()); // Txt needs to be "const char * c "... In String-type, that can be done
+  screenPrintText(buttonString.c_str(), 0, 3, 0);
 
   // Print date and time to serial
-  Serial.print(daysOfTheWeek[timeClient.getDay()]);
-  Serial.print(__TIME_FORMATTED);
+  Serial.println(daysOfTheWeek[timeClient.getDay()] + __TIME_FORMATTED);
 
   // Update our table position
   checkPositionGuidance();
@@ -362,9 +372,6 @@ void setup()
   // put your setup code here, to run once:
   Serial.begin(115200);
 
-  // WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
-  WiFiManager wm;
-
   // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   // it is a good practice to make sure your code sets wifi mode how you want it.
 
@@ -380,13 +387,7 @@ void setup()
   bool res;
   // res = wm.autoConnect(); // auto generated AP name from chipid
   // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
-  res = wm.autoConnect("AutoConnectAP", "standup"); // password protected ap
-
-  if (wm.getConfigPortalActive())
-  {
-    Serial.println("No wifi....");
-    screenPrintText("No wifi...", 0, 0, 1);
-  }
+  res = wm.autoConnect("AutoConnectAP", "standupnow"); // password protected ap
 
   if (!res)
   {
@@ -451,7 +452,7 @@ void setup()
     screenPrintText("-Ping me", 0, 3, 0);
     screenPrintText("-Try stand up", 0, 4, 0);
     screenPrintText("", 0, 5, 0);
-    screenPrintText("Hotspot enabled", 0, 6, 0);
+    screenPrintText("Didn't create hotspot", 0, 6, 0);
   }
 }
 
@@ -485,6 +486,18 @@ boolean delay_without_delaying(unsigned long &since, unsigned long time)
 
 void loop()
 {
+  if (wm.getConfigPortalActive())
+  {
+    Serial.println("No wifi1....");
+    screenPrintText("No wifi1...", 0, 0, 1);
+  }
+
+  if (wm.getWebPortalActive())
+  {
+    Serial.println("No wifi2....");
+    screenPrintText("No wifi2...", 0, 0, 1);
+  }
+
   // Button counts
   button.loop(); // MUST call the loop() function first
 
@@ -513,10 +526,12 @@ void loop()
     // Not long press tigger anymore, and fade light to confirm userinput
     lastButtonPressWasLongPress = !lastButtonPressWasLongPress;
     createColor.off();
-    screenPrintText("Period set to MM: " + String(__TIME_MM), 0, 0, 1);
+    screenPrintText("New MM period:", 0, 0, 1);
+    screenPrintText(String(__TIME_MM), 0, 1, 0);
+    screenPrintText("saved :)...", 0, 2, 0);
     createColor.blink();
     // Set the new minute target
-    __CURRENT_START_PERIOD_TIME_MIN = __TIME_MM;
+    __CURRENT_START_PERIOD_TIME_MIN = __TIME_MM + 1;
     __CHANGE_POSITION_NEXT = 0;
     __CHANGE_POSITION_PREVIOUS = 0;
     // Calculate new targets
