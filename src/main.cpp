@@ -47,14 +47,20 @@
 #include <ezButton.h>
 
 // VARS
+//-- WIFI
 bool __WIFI_CONNECTED = false;
+
+//-- SCREEN
+unsigned long screenIsInitiated = 0;
+
+//-- CONFIG
 bool fetching_config = false;
 int __CONFIG_ENABLED_FROM = 0;
 int __CONFIG_ENABLED_TO = 0;
 int __CONFIG_STAND_UP_PERIOD_MIN = 0;
 
-// BUTTON VARS
-ezButton button(2); // create ezButton object; // // GPIO2 = D4
+//-- BUTTONS
+ezButton button(2); // GPIO2 = D4
 unsigned long lastCount = 0;
 unsigned long count = 0;
 unsigned long buttonIsPressed = 0;
@@ -65,8 +71,6 @@ unsigned long lastButtonPressWasLongPress = 0;
 
 // OLED SCREEN
 #include <U8g2lib.h>
-// Parameters
-char cstr[16]; // To convert int to char
 
 // Objects
 //  VIRKER 128x64: U8X8_SH1106_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE);
@@ -190,6 +194,11 @@ void get_json_config(void)
   }
 }
 
+void updateTablePosition()
+{
+  Serial.print("TablePosition");
+}
+
 void updateScreenAndTime()
 {
   // u8x8.setFont(u8x8_font_chroma48medium8_r);
@@ -225,9 +234,9 @@ void updateScreenAndTime()
   Serial.print(":");
   Serial.println(timeClient.getSeconds());
   // Serial.println(timeClient.getFormattedTime());
-}
 
-unsigned long screenIsInitiated = 0;
+  updateTablePosition();
+}
 
 void screenPrintText(String text, unsigned long position, unsigned long line, unsigned long cleanScreen)
 {
@@ -280,6 +289,12 @@ void setup()
   // res = wm.autoConnect(); // auto generated AP name from chipid
   // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
   res = wm.autoConnect("AutoConnectAP", "standup"); // password protected ap
+
+  if (wm.getConfigPortalActive())
+  {
+    Serial.println("No wifi....");
+    screenPrintText("No wifi...", 0, 0, 1);
+  }
 
   if (!res)
   {
