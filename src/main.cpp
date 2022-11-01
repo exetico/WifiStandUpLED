@@ -260,21 +260,24 @@ void setNextPeriodTime()
 
   // If target MM is already passed
   // If same minute, add one hour... Else we'll stick to the same minute, in 60 sec
-  if (__TIME_MM >= __START_PERIOD_MM)
-  {
-    __CHANGE_POSITION_NEXT = ((__TIME_HH + 1) * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
-    Serial.println("Bob1:" + String(__CHANGE_POSITION_NEXT));
-  }
-  else
-  {
-    __CHANGE_POSITION_NEXT = (__TIME_HH * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
-    Serial.println("Bob2");
-  }
+  // if (__TIME_MM >= __START_PERIOD_MM)
+  // {
+  //   __CHANGE_POSITION_NEXT = ((__TIME_HH + 1) * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+  //   Serial.println("Bob1:" + String(__CHANGE_POSITION_NEXT));
+  // }
+  // else
+  // {
+  //   __CHANGE_POSITION_NEXT = (__TIME_HH * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+  //   Serial.println("Bob2");
+  // }
+
+  __CHANGE_POSITION_NEXT = (__TIME_HH * 60 * 60) + (__START_PERIOD_MM * 60) + (__CONFIG_STAND_UP_PERIOD_MIN * 60);
+  Serial.println("Bob1:" + String(__CHANGE_POSITION_NEXT));
 
   // If next position change is out of allowed period...
   if (__CHANGE_POSITION_NEXT > __CURRENT_TO_TIME_SEC)
   {
-    __CHANGE_POSITION_NEXT = (__CONFIG_ENABLED_FROM * 60 * 60) + (__START_PERIOD_MM * 60) + (__TIME_SS);
+    __CHANGE_POSITION_NEXT = (__CONFIG_ENABLED_FROM * 60 * 60) + (__CONFIG_STAND_UP_PERIOD_MIN * 60);
     Serial.println("Bob3");
     Serial.println("Bob3: " + String(__CHANGE_POSITION_NEXT));
   }
