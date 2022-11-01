@@ -314,9 +314,8 @@ void checkPositionGuidance()
   // __CURRENT_IS_SITTING = 0;
   // __CURRENT_START_PERIOD_TIME_MIN = 0;
 
-  Serial.print("This time" + __THIS_TIME);
   __THIS_TIME = (__TIME_HH * 60 * 60) + (__TIME_MM * 60) + (__TIME_SS);
-  Serial.print("This time" + __THIS_TIME);
+  Serial.print("This time" + String(__THIS_TIME));
 
   // Fresh run
   if (!__CHANGE_POSITION_PREVIOUS and !__CHANGE_POSITION_NEXT)
