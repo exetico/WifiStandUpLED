@@ -34,6 +34,7 @@ https://www.calculator.net/resistor-calculator.html?bandnum=5&band1=brown&band2=
 https://arduinogetstarted.com/tutorials/arduino-button-library
 https://e-radionica.com/en/blog/what-is-pull-up-pull-down-resistor/
 Button wirering: https://i.imgur.com/kr8ZFfU.png
+// https://github.com/PaulStoffregen/Time
 
 HTTPS is currently insecure, but that's fine for our config.. But check this, if you need to fix it.. at some point
 https://maakbaas.com/esp8266-iot-framework/logs/https-requests/

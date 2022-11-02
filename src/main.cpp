@@ -24,12 +24,16 @@ int __CURRENT_FROM_TIME_SEC = 0;
 int __CURRENT_TO_TIME_SEC = 0;
 int __CHANGE_POSITION_PREVIOUS = 0;
 int __CHANGE_POSITION_NEXT = 0;
+int __CHANGE_POSITION_NEXT_EPOCH = 0;
+int __TARGET_DAY = 0;
+int __CURRENT_POSITION = 0; // See lightStates
 
 //-- TIME
 int __THIS_TIME = 0;
 int __TIME_HH = 0;
 int __TIME_MM = 0;
 int __TIME_SS = 0;
+int __TIME_EPOCH = 0;
 String __TIME_FORMATTED = "";
 
 //-- BUTTONS
@@ -63,6 +67,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffsetInSeconds);
 const int redLED = 14;   // D3 GPIO0
 const int greenLED = 12; // D2 GPIO2
 Color createColor(redLED, greenLED);
+char lightStates[3][12] = {"Ukendt", "Standup", "Sit"};
 
 // Download files
 #include <WiFiClient.h>
@@ -229,14 +234,18 @@ void setNextPeriodTime()
   // }
 
   __CHANGE_POSITION_NEXT = (__TIME_HH * 60 * 60) + (__START_PERIOD_MM * 60) + (__CONFIG_STAND_UP_PERIOD_MIN * 60);
-  Serial.println("Bob1:" + String(__CHANGE_POSITION_NEXT));
+  Serial.println("CPN:" + String(__CHANGE_POSITION_NEXT));
 
   // If next position change is out of allowed period...
   if (__CHANGE_POSITION_NEXT > __CURRENT_TO_TIME_SEC)
   {
+    __TARGET_DAY = 
+    Serial.println("Bob3 CPN: " + String(__CHANGE_POSITION_NEXT));
     __CHANGE_POSITION_NEXT = (__CONFIG_ENABLED_FROM * 60 * 60) + (__CONFIG_STAND_UP_PERIOD_MIN * 60);
-    Serial.println("Bob3");
-    Serial.println("Bob3: " + String(__CHANGE_POSITION_NEXT));
+    __CHANGE_POSITION_NEXT_EPOCH = __TIME_EPOCH + (60*60*24 -__THIS_TIME) + __CHANGE_POSITION_NEXT; // Current EPOCH + (length-of-day - current time) + new position, the next day
+    Serial.println("Bob3 CPN After: " + String(__CHANGE_POSITION_NEXT));
+    Serial.println("Bob3 CEF: " + String(__CONFIG_ENABLED_FROM));
+    Serial.println("Bob3 SPM: " + String(__CONFIG_STAND_UP_PERIOD_MIN));
   }
 
   Serial.println("__CHANGE_POSITION_PREVIOUS " + String(__CHANGE_POSITION_PREVIOUS));
@@ -291,7 +300,7 @@ void checkPositionGuidance()
   // __CURRENT_START_PERIOD_TIME_MIN = 0;
 
   __THIS_TIME = (__TIME_HH * 60 * 60) + (__TIME_MM * 60) + (__TIME_SS);
-  Serial.println("This time" + String(__THIS_TIME) + " .. " + String(__CHANGE_POSITION_NEXT));
+  Serial.println("This time" + String(__THIS_TIME) + " .. " + String(__CHANGE_POSITION_NEXT) + " .. " + String(__TIME_EPOCH) + " .. " + String(__CHANGE_POSITION_NEXT_EPOCH));
 
   // Fresh run
   if (int(__CHANGE_POSITION_NEXT) == (0))
@@ -310,10 +319,20 @@ void checkPositionGuidance()
   else if ( // Time is passed, but period is out of scope
       int(__THIS_TIME) > int(__CURRENT_FROM_TIME_SEC) &&
       int(__THIS_TIME) > int(__CURRENT_TO_TIME_SEC) &&
-      int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT))
+      int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT) &&
+      int(__TIME_EPOCH) >= int(__CHANGE_POSITION_NEXT_EPOCH)
+      )
   {
     updateTimeAndPosition();
-    Serial.println("NPIY " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
+    Serial.println("NPIZ " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
+  }
+  else if(
+      int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT)
+      &&
+       (int(__CHANGE_POSITION_NEXT) != int(__CURRENT_FROM_TIME_SEC + (__CONFIG_STAND_UP_PERIOD_MIN * 60)))
+  ){
+    Serial.println("!PIZ " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
+  updateTimeAndPosition();
   }
 
   // if (__THIS_TIME > __CHANGE_POSITION_NEXT)
@@ -375,6 +394,13 @@ void setup()
 
   // put your setup code here, to run once:
   Serial.begin(115200);
+
+  Serial.println("Test" + __CURRENT_POSITION);
+  Serial.println(lightStates[__CURRENT_POSITION]);
+  Serial.println(lightStates[0]);
+  Serial.println(lightStates[1]);
+  Serial.println(lightStates[2]);
+  
 
   // WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
   // it is a good practice to make sure your code sets wifi mode how you want it.
@@ -503,9 +529,9 @@ void loop()
 
         char * commandStr = const_cast<char*> ( command.c_str() );
 
-        Serial.println(strtok(commandStr, "bob"));
-        Serial.println(command.indexOf("bob"));
-        Serial.println(command.equals("bob"));
+        // Serial.println(strtok(commandStr, "bob"));
+        // Serial.println(command.indexOf("bob"));
+        // Serial.println(command.equals("bob"));
 
         if(command.indexOf("cpn") == (0)){
           Serial.println(strtok(commandStr, "cpn"));
@@ -513,19 +539,28 @@ void loop()
           __CHANGE_POSITION_NEXT = number;
         }
 
+        if(command.indexOf("h") == (0)){
+             Serial.println("h");
+        }
 
-        if(commandStr){
-            Serial.println("Ok...Bob");
+        if(command.indexOf("m") == (0)){
+            //createColor.whiteGreen();
+            Serial.println("m");
         }
-        if(command.equals("bob1")){
-            Serial.println("ok-bob1");
-        } else if(command.equals("bob2")){
-            Serial.println("ok-bob2");
-        } else if(command.equals("bob3")){
-            Serial.println("ok-bob3");
-        } else{
-            Serial.println("Invalid command");
-        }
+
+
+        // if(commandStr){
+        //     Serial.println("Ok...Bob");
+        // }
+        // if(command.equals("bob1")){
+        //     Serial.println("ok-bob1");
+        // } else if(command.equals("bob2")){
+        //     Serial.println("ok-bob2");
+        // } else if(command.equals("bob3")){
+        //     Serial.println("ok-bob3");
+        // } else{
+        //     Serial.println("Invalid command");
+        // }
     }
 
 
@@ -669,6 +704,7 @@ void loop()
     __TIME_HH = timeClient.getHours();
     __TIME_MM = timeClient.getMinutes();
     __TIME_SS = timeClient.getSeconds();
+    __TIME_EPOCH = timeClient.getEpochTime();
     __TIME_FORMATTED = timeClient.getFormattedTime();
 
     updateScreenAndTime();
