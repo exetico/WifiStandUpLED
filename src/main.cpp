@@ -539,13 +539,20 @@ void loop()
           __CHANGE_POSITION_NEXT = number;
         }
 
-        if(command.indexOf("h") == (0)){
-             Serial.println("h");
+        Serial.println(command.indexOf("o"));
+        if(command.indexOf("o") == (0)){
+             createColor.off();
+             Serial.println("o");
         }
 
-        if(command.indexOf("m") == (0)){
-            //createColor.whiteGreen();
-            Serial.println("m");
+        if(command.indexOf("g") == (0)){
+            createColor.whiteGreen();
+            Serial.println("g");
+        }
+
+        if(command.indexOf("r") == (0)){
+            createColor.whiteRed();
+            Serial.println("r");
         }
 
 
@@ -665,12 +672,20 @@ void loop()
 
     case 5:
       Serial.println("Case 5, woop");
+      setNextPeriodTime();
       break;
 
     case 6:
       Serial.println("Case 6, woop");
-      setNextPeriodTime();
-
+    createColor.off();
+    createColor.whiteGreen();
+    delay(300);
+    createColor.whiteRed();
+    delay(300);
+    createColor.whiteGreen();
+    delay(300);
+    createColor.whiteRed();
+    delay(300);
       break;
     }
 
