@@ -307,6 +307,14 @@ void checkPositionGuidance()
     updateTimeAndPosition();
     Serial.println("NPIY " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
   }
+  else if ( // Time is passed, but period is out of scope
+      int(__THIS_TIME) > int(__CURRENT_FROM_TIME_SEC) &&
+      int(__THIS_TIME) > int(__CURRENT_TO_TIME_SEC) &&
+      int(__THIS_TIME) > int(__CHANGE_POSITION_NEXT))
+  {
+    updateTimeAndPosition();
+    Serial.println("NPIY " + String(__THIS_TIME) + " ... " + String(__CHANGE_POSITION_NEXT));
+  }
 
   // if (__THIS_TIME > __CHANGE_POSITION_NEXT)
   // {
@@ -481,8 +489,46 @@ boolean delay_without_delaying(unsigned long &since, unsigned long time)
   return false;
 }
 
+String command;
+
 void loop()
 {
+
+
+  // Read serial
+    if(Serial.available()){
+        command = Serial.readStringUntil('\n');
+
+        Serial.printf("Command received %s \n", command.c_str());
+
+        char * commandStr = const_cast<char*> ( command.c_str() );
+
+        Serial.println(strtok(commandStr, "bob"));
+        Serial.println(command.indexOf("bob"));
+        Serial.println(command.equals("bob"));
+
+        if(command.indexOf("cpn") == (0)){
+          Serial.println(strtok(commandStr, "cpn"));
+          long number = atol( strtok(commandStr, "cpn") );
+          __CHANGE_POSITION_NEXT = number;
+        }
+
+
+        if(commandStr){
+            Serial.println("Ok...Bob");
+        }
+        if(command.equals("bob1")){
+            Serial.println("ok-bob1");
+        } else if(command.equals("bob2")){
+            Serial.println("ok-bob2");
+        } else if(command.equals("bob3")){
+            Serial.println("ok-bob3");
+        } else{
+            Serial.println("Invalid command");
+        }
+    }
+
+
   if (wm.getConfigPortalActive())
   {
     Serial.println("No wifi1....");
