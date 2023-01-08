@@ -1,6 +1,5 @@
 /*
-Joe Mulhern 2017
-PWM colors for strips. Make with RGB LEDs
+Check https://github.com/esp8266/Arduino/commit/a67986915512c5304bd7c161cf0d9c65f66e0892 - Value from 0 to 1024
 */
 #include "Color.h"
 
