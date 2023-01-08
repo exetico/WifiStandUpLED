@@ -15,12 +15,12 @@ Color::Color(int redPIN, int greenPIN)
 void Color::whiteRed()
 {
   analogWrite(_redPIN, 0);
-  analogWrite(_greenPIN, 255);
+  analogWrite(_greenPIN, 1024);
 }
 
 void Color::whiteGreen()
 {
-  analogWrite(_redPIN, 255);
+  analogWrite(_redPIN, 1024);
   analogWrite(_greenPIN, 0);
 }
 
@@ -32,14 +32,14 @@ void Color::whiteBoth()
 
 void Color::off()
 {
-  analogWrite(_redPIN, 255); // 255 = Off
-  analogWrite(_greenPIN, 255);
+  analogWrite(_redPIN, 1024); // 1024 = Off
+  analogWrite(_greenPIN, 1024);
 }
 
 void Color::blink()
 {
   int FADESPEED = 5;
-  int FADE_LIMIT = 255;
+  int FADE_LIMIT = 1024;
   int FADE_OFFSET = 10; // Adjust if strip does not go to 0
 
   for (int r = 0; r < FADE_LIMIT + 1; r++)
@@ -73,7 +73,7 @@ void Color::blink()
 void Color::blinkShort()
 {
   int FADESPEED = 1; // Lower= Faster... Higher=Slower
-  int FADE_LIMIT = 255;
+  int FADE_LIMIT = 1024;
   int FADE_OFFSET = 10; // Adjust if strip does not go to 0
 
   for (int r = 0; r < FADE_LIMIT + 1; r++)
